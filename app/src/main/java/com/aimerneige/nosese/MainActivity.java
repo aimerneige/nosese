@@ -3,14 +3,37 @@ package com.aimerneige.nosese;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.Activity;
+import android.content.ContentUris;
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.google.android.material.appbar.MaterialToolbar;
 
+import java.io.IOException;
+
 public class MainActivity extends AppCompatActivity {
+
+    public static final int ALBUM_APPLE_RESULT_CODE = 1;
+    public static final int ALBUM_OTHERS_RESULT_CODE = 2;
+
+    private static String appleImgPath = "";
+    private static String othersImgPath = "";
+
+    private ImageView appleImageView;
+    private ImageView othersImageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,6 +45,93 @@ public class MainActivity extends AppCompatActivity {
     private void initView() {
         MaterialToolbar toolbar = findViewById(R.id.main_toolbar);
         setSupportActionBar(toolbar);
+
+        Button importAppleBtn = findViewById(R.id.import_apple_btn);
+        importAppleBtn.setOnClickListener(v -> onImportAppleBtnClicked());
+
+        Button importOthersBth = findViewById(R.id.import_others_btn);
+        importOthersBth.setOnClickListener(v -> onImportOthersBtnClicked());
+
+        Button generateBtn = findViewById(R.id.generate_btn);
+        generateBtn.setOnClickListener(v -> onGenerateBtnClicked());
+
+        appleImageView = findViewById(R.id.apple_image);
+
+        othersImageView = findViewById(R.id.other_image);
+    }
+
+    private void onImportAppleBtnClicked() {
+        Intent albumIntent = new Intent(Intent.ACTION_PICK);
+        albumIntent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+        startActivityForResult(albumIntent, ALBUM_APPLE_RESULT_CODE);
+    }
+
+    private void onImportOthersBtnClicked() {
+        Intent albumIntent = new Intent(Intent.ACTION_PICK);
+        albumIntent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+        startActivityForResult(albumIntent, ALBUM_OTHERS_RESULT_CODE);
+    }
+
+    private void onGenerateBtnClicked() {
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        handleImageOnKitKat(data, requestCode);
+    }
+
+    private void handleImageOnKitKat(Intent data, int requestCode) {
+        String imagePath = null;
+        Uri uri = data.getData();
+        if (DocumentsContract.isDocumentUri(this, uri)) {
+            // 如果是 document 类型的 Uri，则通过 document id 处理
+            String docId = DocumentsContract.getDocumentId(uri);
+            if ("com.android.providers.media.documents".equals(uri.getAuthority())) {
+                String id = docId.split(":")[1];
+                // 解析出数字格式的 id
+                String selection = MediaStore.Images.Media._ID + "=" + id;
+                imagePath = getImagePath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, selection);
+            } else if ("com.android.providers.downloads.documents".equals(uri.getAuthority())) {
+                Uri contentUri = ContentUris.withAppendedId(Uri.parse("content: //downloads/public_downloads"), Long.valueOf(docId));
+                imagePath = getImagePath(contentUri, null);
+            }
+        } else if ("content".equalsIgnoreCase(uri.getScheme())) {
+            // 如果是 content 类型的 Uri，则使用普通方式处理
+            imagePath = getImagePath(uri, null);
+        } else if ("file".equalsIgnoreCase(uri.getScheme())) {
+            // 如果是 file 类型的 Uri，直接获取图片路径即可
+            imagePath = uri.getPath();
+        }
+        switch (requestCode) {
+            case ALBUM_APPLE_RESULT_CODE: {
+                appleImgPath = imagePath;
+                Bitmap bitmap = BitmapFactory.decodeFile(appleImgPath);
+                appleImageView.setImageBitmap(bitmap);
+                break;
+            }
+            case ALBUM_OTHERS_RESULT_CODE: {
+                othersImgPath = imagePath;
+                Bitmap bitmap = BitmapFactory.decodeFile(othersImgPath);
+                othersImageView.setImageBitmap(bitmap);
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+
+    private String getImagePath(Uri uri, String selection) {
+        String path = null;
+        Cursor cursor = getContentResolver().query(uri, null, selection, null, null);
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                path = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DATA));
+            }
+            cursor.close();
+        }
+        return path;
     }
 
     @Override
