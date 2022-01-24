@@ -14,7 +14,7 @@ public class AboutActivity extends AppCompatActivity {
     private static final String referUrl = "https://github.com/DavidBuchanan314/ambiguous-png-packer";
     private static final String openSourceUrl = "https://github.com/aimerneige/Nosese";
     private static final String githubUrl = "https://github.com/aimerneige";
-    private static final String blogUrl = "https://aimerneige.com";
+    private static final String blogUrl = "https://aimerneige.com/zh";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
