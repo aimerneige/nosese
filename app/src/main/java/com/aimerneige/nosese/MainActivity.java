@@ -3,7 +3,6 @@ package com.aimerneige.nosese;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Intent;
 import android.database.Cursor;
@@ -13,7 +12,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
@@ -22,18 +20,22 @@ import android.widget.Toast;
 
 import com.google.android.material.appbar.MaterialToolbar;
 
-import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
     public static final int ALBUM_APPLE_RESULT_CODE = 1;
     public static final int ALBUM_OTHERS_RESULT_CODE = 2;
 
-    private static String appleImgPath = "";
-    private static String othersImgPath = "";
-
     private ImageView appleImageView;
     private ImageView othersImageView;
+
+    private static int appleWidth;
+    private static int appleHeight;
+    private static int othersWidth;
+    private static int othersHeight;
+
+    private static boolean appleImported = false;
+    private static boolean othersImported = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,6 +75,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onGenerateBtnClicked() {
+        if (!appleImported) {
+            Toast.makeText(getApplicationContext(), "请先导入苹果设备图片！", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!othersImported) {
+            Toast.makeText(getApplicationContext(), "请先导入其他设备图片！", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (appleWidth != othersWidth || appleHeight != othersHeight) {
+            Toast.makeText(getApplicationContext(), "图片尺寸不统一！", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Toast.makeText(getApplicationContext(), "todo", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -103,17 +119,20 @@ public class MainActivity extends AppCompatActivity {
             // 如果是 file 类型的 Uri，直接获取图片路径即可
             imagePath = uri.getPath();
         }
+        Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
         switch (requestCode) {
             case ALBUM_APPLE_RESULT_CODE: {
-                appleImgPath = imagePath;
-                Bitmap bitmap = BitmapFactory.decodeFile(appleImgPath);
                 appleImageView.setImageBitmap(bitmap);
+                appleHeight = bitmap.getHeight();
+                appleWidth = bitmap.getWidth();
+                appleImported = true;
                 break;
             }
             case ALBUM_OTHERS_RESULT_CODE: {
-                othersImgPath = imagePath;
-                Bitmap bitmap = BitmapFactory.decodeFile(othersImgPath);
                 othersImageView.setImageBitmap(bitmap);
+                othersHeight = bitmap.getHeight();
+                othersWidth = bitmap.getWidth();
+                othersImported = true;
                 break;
             }
             default: {
